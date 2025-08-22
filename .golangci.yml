@@ -15,11 +15,12 @@ linters:
     - prealloc
     - unparam
     - gosec
+  settings:
+   gocyclo:
+    min-complexity: 15
+
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15
