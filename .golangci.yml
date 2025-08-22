@@ -23,8 +23,3 @@ issues:
 linters-settings:
   gocyclo:
     min-complexity: 15
-  revive:
-    rules:
-      - name: exported
-        arguments: [ "disableLeadingUnderscore" ]
-∫

@@ -1,3 +1,4 @@
+// Command streamforge is the entrypoint for the StreamForge application.
 package main
 
 import (
