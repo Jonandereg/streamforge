@@ -32,10 +32,13 @@ git clone https://github.com/<your-username>/streamforge.git
 cd streamforge
 make tools      # install linters
 make deps       # tidy dependencies
+```
 
 ### Run the stack
+```bash
 make up
 make ps
+```
 
 ### Access services
 - TimescaleDB → localhost:5432 (user: postgres, password: postgres, db: streamforge)
@@ -46,11 +49,13 @@ make ps
 - Jaeger UI → http://localhost:16686
 
 ### Tear down
-
+```bash
 make down
+```
 
 ### Status
 Status
 
 ✅ Repository initialized, CI/CD pipeline green.
+
 🚧 Currently implementing core ingestion pipeline.
