@@ -1,9 +1,13 @@
 package version
 
-import "testing"
+import (
+	"testing"
 
-func TestDefaults(t *testing.T) {
-	if Version == "" || Commit == "" || BuildDate == "" {
-		t.Fatal("version variables should be set or non-empty defaults")
-	}
+	"github.com/stretchr/testify/assert"
+)
+
+func TestDefaultsWithAssert(t *testing.T) {
+	assert.NotEmpty(t, Version)
+	assert.NotEmpty(t, Commit)
+	assert.NotEmpty(t, BuildDate)
 }
