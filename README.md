@@ -2,7 +2,7 @@
 Market Data Ingest & Storage pipeline in Go.
 
 ## Quick start
-- Go 1.22+
+- Go 1.24+
 - `make deps && make test`
 
 ## Status
