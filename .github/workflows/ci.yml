@@ -28,7 +28,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.4.0     
-          args: --timeout=5m -v --out-format=github-actions
+          args: --timeout=5m -v
 
       - name: Test (race + coverage)
         run: go test ./... -race -coverprofile=coverage.out
