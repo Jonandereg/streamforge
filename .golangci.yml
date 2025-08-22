@@ -1,4 +1,4 @@
-version: 1
+version: "2"
 
 run:
   timeout: 3m
@@ -11,8 +11,7 @@ linters:
     - errcheck
     - gocyclo
     - revive
-    - ineffassign
-    - gosimple
+    - ineffassign  
     - prealloc
     - unparam
     - gosec
@@ -25,3 +24,6 @@ issues:
 linters-settings:
   gocyclo:
     min-complexity: 15
+
+revive:
+    severity: warning
