@@ -23,9 +23,9 @@ jobs:
 
       - name: Download modules
         run: go mod download
-        
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v2.4.0     
           args: --timeout=5m -v --out-format=github-actions
