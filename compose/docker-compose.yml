@@ -1,0 +1,106 @@
+name: streamforge
+
+services:
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    container_name: sf-timescale
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: sf-redis
+    ports: [ "6379:6379" ]
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: sf-kafka
+    environment:
+      # KRaft roles and IDs (single node combining broker + controller)
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_NODE_ID: "1"
+
+      # Listeners: internal broker, controller, and host-exposed broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:${KAFKA_PORT_EXTERNAL}
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Single-node controller quorum (self)
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # Dev-friendly topic defaults
+      KAFKA_CFG_NUM_PARTITIONS: "3"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+    ports:
+      - "29092:29092"   # host access
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD","bash","-lc","/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: sf-prometheus
+    volumes:
+      - ../configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: [ "9090:9090" ]
+    depends_on:
+      - timescale
+      - kafka
+      - redis
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: sf-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    ports: [ "3000:3000" ]
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.97.0
+    container_name: sf-otelcol
+    command: ["--config=/etc/otel-collector.yml"]
+    volumes:
+      - ../configs/otel-collector.yml:/etc/otel-collector.yml:ro
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: sf-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # collector http
+
+volumes:
+  timescale_data:
+  kafka_data:
+  grafana_data:

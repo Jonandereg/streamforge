@@ -5,6 +5,7 @@
 *.exe
 *.out
 
+
 # Go
 go.work
 coverage.*
@@ -14,3 +15,5 @@ coverage.*
 .vscode/
 .idea/
 .DS_Store
+
+.env
