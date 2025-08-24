@@ -43,6 +43,7 @@ This repo ships a local infra stack for development:
 - Kafka **in KRaft mode** (no ZooKeeper) via Bitnami image
 - Prometheus (metrics), Grafana (dashboards)
 - OpenTelemetry Collector (OTLP → Jaeger), Jaeger (traces)
+- DATABASE_URL is used by the migration tool; it will be generated from the Timescale env vars in local/dev.
 
 ### Environment
 Copy defaults and adjust as needed:
