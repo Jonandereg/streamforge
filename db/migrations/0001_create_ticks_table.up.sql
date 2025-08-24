@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS ticks (
   src_id      text             NOT NULL,
   ingested_at timestamptz      NOT NULL DEFAULT now(),
   CONSTRAINT ticks_pk PRIMARY KEY (symbol, ts, src_id)
-) 
+);
 
 SELECT create_hypertable('ticks','ts', if_not_exists => TRUE, chunk_time_interval => INTERVAL '1 day');
 

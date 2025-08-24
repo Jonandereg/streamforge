@@ -45,6 +45,21 @@ This repo ships a local infra stack for development:
 - OpenTelemetry Collector (OTLP → Jaeger), Jaeger (traces)
 - DATABASE_URL is used by the migration tool; it will be generated from the Timescale env vars in local/dev.
 
+### Database & Migrations
+
+- I use **TimescaleDB**; `ticks` is a hypertable on `ts`.
+- Dev retention: **30 days**; compression on chunks older than **7 days**.
+- Migrations are managed with **golang-migrate** (via Docker).
+
+**Run migrations**
+
+```bash
+make migrate-up # apply all up migrations
+make migrate-version # show current migration version
+make migrate-down # roll back one migration (careful)
+```
+
+
 ### Environment
 Copy defaults and adjust as needed:
 
