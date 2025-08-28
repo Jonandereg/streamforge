@@ -59,6 +59,32 @@ make migrate-version # show current migration version
 make migrate-down # roll back one migration (careful)
 ```
 
+### Normalized `Tick` Model
+
+All market data providers are normalized into a common `Tick` struct before being persisted in TimescaleDB.  
+This ensures the ingestion pipeline stays provider-agnostic.
+
+| Field      | Type        | Source (Finnhub) | Notes                                  |
+|------------|-------------|------------------|----------------------------------------|
+| `symbol`   | string      | `s`              | e.g. `"AAPL"`, `"EURUSD"`.             |
+| `ts`       | `time.Time` | `t` (epoch ms)   | Converted to UTC.                       |
+| `price`    | float64     | `p`              | Last trade/quote price.                 |
+| `size`     | float64     | `v`              | Trade size/volume (0 if unknown).       |
+| `exchange` | string      | `x` (optional)   | Empty string if not provided.           |
+| `src_id`   | string      | constant         | `"finnhub"` (identifies the provider). |
+
+**Example normalized tick (JSON):**
+
+```json
+{
+  "symbol": "AAPL",
+  "ts": "2025-08-27T20:15:31.134Z",
+  "price": 231.42,
+  "size": 100,
+  "exchange": "",
+  "src_id": "finnhub"
+  }
+  ```
 
 ### Environment
 Copy defaults and adjust as needed:

@@ -5,11 +5,13 @@ import (
 	"os"
 )
 
+// Config holds configuration values loaded from environment variables.
 type Config struct {
 	DataProviderToken   string
 	DataProviderBaseURL string
 }
 
+// LoadConfig loads configuration values from environment variables.
 func LoadConfig() (Config, error) {
 	token := os.Getenv("FINNHUB_TOKEN")
 
