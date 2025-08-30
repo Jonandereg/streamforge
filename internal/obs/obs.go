@@ -1,6 +1,7 @@
 package obs
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,9 +14,50 @@ type Obs struct {
 	Logger         *zap.Logger
 	PromRegistry   *prometheus.Registry
 	TracerProvider *sdktrace.TracerProvider
-
-	// Optional helpers to mount endpoints
 	MetricsHandler http.Handler
 	HealthHandler  http.Handler
 	ReadyHandler   http.Handler
+}
+
+// Init sets up observability components (logger, tracing, metrics, health, readiness).
+// It returns an Obs struct with handlers and clients, plus a shutdown function
+// that should be called on service exit to flush logs and traces.
+func Init(ctx context.Context, cfg Config) (*Obs, func(context.Context) error, error) {
+	lg, err := NewLogger(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tp, err := NewTracerProvider(ctx, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	reg, metricsH, err := NewMetricsRegistry(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	healthH, readyH := NewHealthHandlers()
+
+	o := &Obs{
+		Logger:         lg,
+		TracerProvider: tp,
+		PromRegistry:   reg,
+		MetricsHandler: metricsH,
+		HealthHandler:  healthH,
+		ReadyHandler:   readyH.Handler(),
+	}
+
+	shutdown := func(ctx context.Context) error {
+		var retErr error
+		_ = o.Logger.Sync()
+		if o.TracerProvider != nil {
+			if err := o.TracerProvider.Shutdown(ctx); err != nil {
+				retErr = err
+			}
+		}
+		return retErr
+	}
+
+	return o, shutdown, nil
 }
