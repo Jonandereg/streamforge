@@ -8,6 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// HTTPMetrics provides Prometheus metrics for HTTP requests including
+// request counts and duration histograms.
 type HTTPMetrics struct {
 	requests  *prometheus.CounterVec
 	durations *prometheus.HistogramVec
@@ -23,6 +25,8 @@ func (w *statusWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// NewHTTPMetrics creates a new HTTPMetrics instance with request counter
+// and duration histogram metrics registered to the provided registry.
 func NewHTTPMetrics(reg *prometheus.Registry) *HTTPMetrics {
 	m := &HTTPMetrics{
 		requests: prometheus.NewCounterVec(
@@ -47,6 +51,8 @@ func NewHTTPMetrics(reg *prometheus.Registry) *HTTPMetrics {
 	return m
 }
 
+// Wrap returns an HTTP handler that wraps the provided handler with metrics
+// collection, recording request counts and durations for the specified route.
 func (m *HTTPMetrics) Wrap(route string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}

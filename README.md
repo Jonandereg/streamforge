@@ -33,6 +33,25 @@ cd streamforge
 make tools      # install linters
 make deps       # tidy dependencies
 ```
+## Observability
+
+StreamForge includes a production-grade observability baseline out of the box:
+
+- **Structured logging** with [zap](https://github.com/uber-go/zap), JSON or console, sampling, caller info, and trace correlation (`trace_id` / `span_id`).
+- **Metrics** via Prometheus client: Go runtime + process collectors, custom registry, and a `/metrics` endpoint (OpenMetrics enabled).
+- **Tracing** with OpenTelemetry SDK → OTel Collector → Jaeger, including service metadata and configurable sampling.
+- **Health endpoints** (`/healthz`, `/readyz`) and optional **pprof** (`/debug/pprof/*`).
+- **Graceful shutdown** flushing logs and traces.
+
+### Demo service
+
+A lightweight demo app in [`cmd/obsdemo`](./cmd/obsdemo) exercises the observability stack end-to-end:
+
+- Exposes `/`, `/metrics`, `/healthz`, `/readyz`, `/debug/pprof/*`.
+- Sends traces through the OTel Collector into Jaeger.
+- Prometheus scrapes metrics, visualized in Grafana.
+
+👉 See [`cmd/obsdemo/README.md`](./cmd/obsdemo/README.md) for instructions on running the demo locally with Docker Compose.
 
 ## Local Stack (Docker Compose, KRaft Kafka)
 
