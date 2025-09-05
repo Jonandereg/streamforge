@@ -1,12 +1,16 @@
 receivers:
   otlp:
     protocols:
-      grpc:
+      grpc: 
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
 
 exporters:
-  jaeger:
-    endpoint: http://jaeger:14268/api/traces
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
   logging:
     loglevel: info
 
@@ -18,4 +22,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [jaeger, logging]
+      exporters: [otlp/jaeger, logging]

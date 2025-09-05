@@ -16,7 +16,8 @@ type Obs struct {
 	TracerProvider *sdktrace.TracerProvider
 	MetricsHandler http.Handler
 	HealthHandler  http.Handler
-	ReadyHandler   http.Handler
+	ReadyHandler   *Readiness
+	HTTPMetrics    *HTTPMetrics
 }
 
 // Init sets up observability components (logger, tracing, metrics, health, readiness).
@@ -39,13 +40,16 @@ func Init(ctx context.Context, cfg Config) (*Obs, func(context.Context) error, e
 	}
 	healthH, readyH := NewHealthHandlers()
 
+	httpM := NewHTTPMetrics(reg)
+
 	o := &Obs{
 		Logger:         lg,
 		TracerProvider: tp,
 		PromRegistry:   reg,
 		MetricsHandler: metricsH,
 		HealthHandler:  healthH,
-		ReadyHandler:   readyH.Handler(),
+		ReadyHandler:   readyH,
+		HTTPMetrics:    httpM,
 	}
 
 	shutdown := func(ctx context.Context) error {

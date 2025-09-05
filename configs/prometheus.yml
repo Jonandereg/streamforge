@@ -8,6 +8,10 @@ scrape_configs:
     static_configs:
       - targets: ['prometheus:9090']
 
+  - job_name: 'obsdemo'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+
   # Placeholders, todo: enable later when services exist:
   # - job_name: streamforge-api
   #   static_configs:
