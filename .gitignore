@@ -10,6 +10,11 @@
 go.work
 coverage.*
 *.test
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
 
 # IDE
 .vscode/
