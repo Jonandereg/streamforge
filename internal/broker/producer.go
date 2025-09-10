@@ -2,8 +2,11 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
+	sfmetrics "github.com/jonandereg/streamforge/internal/metrics"
+	"github.com/jonandereg/streamforge/internal/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/kafka-go"
 )
@@ -78,5 +81,38 @@ func (p *Producer) Close() error {
 		return err
 	}
 	BrokerCloseTotal.WithLabelValues("success").Inc()
+	return nil
+}
+
+// Publish sends one normalized Tick to Kafka with key=symbol and JSON value.
+func (p *Producer) Publish(ctx context.Context, t model.Tick) error {
+	start := time.Now()
+
+	val, err := json.Marshal(t)
+	if err != nil {
+		sfmetrics.IngestorPublishErrorsTotal.WithLabelValues("marshal").Inc()
+		return err
+	}
+
+	msg := kafka.Message{
+		Key:   []byte(t.Symbol),
+		Value: val,
+		Headers: []kafka.Header{
+			{Key: "content-type", Value: []byte("application/json")},
+			{Key: "src_id", Value: []byte(t.SrcID)},
+			{Key: "normalize_ver", Value: []byte("v1")},
+		},
+		Time: t.Ts,
+	}
+
+	err = p.writer.WriteMessages(ctx, msg)
+	sfmetrics.IngestorPublishLatencySeconds.Observe(float64(time.Since(start).Seconds()))
+
+	if err != nil {
+		sfmetrics.IngestorPublishErrorsTotal.WithLabelValues("error").Inc()
+		return err
+	}
+
+	sfmetrics.IngestorPublishTotal.Inc()
 	return nil
 }

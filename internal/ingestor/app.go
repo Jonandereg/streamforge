@@ -41,6 +41,7 @@ func Run(ctx context.Context, o *obs.Obs) error {
 	symbols := []string{
 		"APPL",
 		"MSFT",
+		"BINANCE:BTCUSDT",
 	}
 	provCfg := finnhub.WSConfig{
 		BaseURL:       envConfig.DataProviderWsURL,
@@ -64,7 +65,15 @@ func Run(ctx context.Context, o *obs.Obs) error {
 					return
 				}
 				sfmetrics.IngestorFetchTotal.Inc()
-				o.Logger.Debug("tick",
+				if err := prod.Publish(ctx, t); err != nil {
+					o.Logger.Error("publish failed",
+						zap.String("symbol", t.Symbol),
+						zap.Time("ts", t.Ts),
+						zap.Error(err),
+					)
+					continue
+				}
+				o.Logger.Debug("published tick",
 					zap.String("symbol", t.Symbol),
 					zap.Time("ts", t.Ts),
 					zap.Float64("price", t.Price),
