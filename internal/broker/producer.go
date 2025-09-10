@@ -27,6 +27,7 @@ var (
 		[]string{"status"},
 	)
 
+	// BrokerCloseTotal tracks broker close attempts by status.
 	BrokerCloseTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ingestor_broker_close_total",
@@ -68,7 +69,7 @@ func NewProducer(ctx context.Context, cfg Config) (*Producer, error) {
 	conn, err := kafka.DialContext(ctx, "tcp", cfg.Brokers[0])
 	if err != nil {
 		BrokerConnectTotal.WithLabelValues("failure").Inc()
-		writer.Close()
+		_ = writer.Close() // Ignore close error, prioritize connection error
 		return nil, err
 	}
 	_ = conn.Close()

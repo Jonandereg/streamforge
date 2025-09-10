@@ -19,9 +19,12 @@ type Tick struct {
 var (
 	// ErrEmptySymbol is returned when a tick has an empty symbol.
 	ErrEmptySymbol = errors.New("Tick: empty symbol")
-	ErrBadTS       = errors.New("tick: zero timestamp")
-	ErrBadPrice    = errors.New("tick: negative price")
-	ErrBadSize     = errors.New("tick: negative size")
+	// ErrBadTS is returned when a tick has a zero timestamp.
+	ErrBadTS = errors.New("tick: zero timestamp")
+	// ErrBadPrice is returned when a tick has a negative price.
+	ErrBadPrice = errors.New("tick: negative price")
+	// ErrBadSize is returned when a tick has a negative size.
+	ErrBadSize = errors.New("tick: negative size")
 )
 
 // Validate checks if the tick has valid field values.

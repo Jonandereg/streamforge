@@ -14,6 +14,7 @@ var (
 			Help: "Total number of fetch attempts by the provider client.",
 		},
 	)
+	// IngestorFetchErrorsTotal counts fetch errors partitioned by reason.
 	IngestorFetchErrorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ingestor_fetch_errors_total",
@@ -56,6 +57,7 @@ var (
 		},
 		[]string{"status"},
 	)
+	// IngestorProviderReconnectTotal tracks provider reconnect attemps
 	IngestorProviderReconnectTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "ingestor_provider_reconnect_total",
