@@ -1,3 +1,4 @@
+// Package broker provides Kafka producer functionality for publishing market data ticks.
 package broker
 
 import (
@@ -11,11 +12,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// Producer wraps a Kafka writer for publishing market data ticks.
 type Producer struct {
 	writer *kafka.Writer
 }
 
 var (
+	// BrokerConnectTotal tracks broker connection attempts by status.
 	BrokerConnectTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ingestor_broker_connect_total",
@@ -33,6 +36,7 @@ var (
 	)
 )
 
+// Config holds configuration for the Kafka producer.
 type Config struct {
 	Brokers       []string
 	Topic         string

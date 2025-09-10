@@ -1,3 +1,4 @@
+// Package ingestor implements the main application logic for the StreamForge ingestor service.
 package ingestor
 
 import (
@@ -13,6 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Run starts the ingestor service, connecting to data providers and publishing ticks to Kafka.
 func Run(ctx context.Context, o *obs.Obs) error {
 
 	bcfg := broker.Config{
@@ -32,7 +34,11 @@ func Run(ctx context.Context, o *obs.Obs) error {
 		o.Logger.Error("failed to connect to broker", zap.Error(err))
 		return err
 	}
-	defer prod.Close()
+	defer func() {
+		if err := prod.Close(); err != nil {
+			o.Logger.Error("failed to close producer during defer", zap.Error(err))
+		}
+	}()
 	o.ReadyHandler.SetReady()
 	o.Logger.Info("broker connected; readiness set")
 

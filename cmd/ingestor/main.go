@@ -1,3 +1,5 @@
+// Package main implements the StreamForge ingestor service.
+// The ingestor connects to market data providers and publishes normalized ticks to Kafka.
 package main
 
 import (
@@ -45,7 +47,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	defer shutdown(context.Background())
+	defer func() {
+		if err := shutdown(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "shutdown error: %v\n", err)
+		}
+	}()
 
 	sfmetrics.Register(o.PromRegistry)
 	sfmetrics.Prime()
@@ -60,8 +66,9 @@ func main() {
 
 	addr := fmt.Sprintf(":%d", metricsPort)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 30 * time.Second,
 	}
 
 	o.Logger.Info("starting service",

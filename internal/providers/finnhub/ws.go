@@ -1,3 +1,4 @@
+// Package finnhub provides a WebSocket client for the Finnhub market data API.
 package finnhub
 
 import (
@@ -13,6 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WSConfig holds configuration for the Finnhub WebSocket client.
 type WSConfig struct {
 	BaseURL       string
 	APIKey        string
@@ -21,11 +23,13 @@ type WSConfig struct {
 	ReconnectMax  time.Duration // e.g. 5 * time.Second
 }
 
+// Provider implements a Finnhub WebSocket client for streaming market data.
 type Provider struct {
 	cfg WSConfig
 	log *zap.Logger
 }
 
+// New creates a new Finnhub WebSocket provider with the given configuration.
 func New(cfg WSConfig, log *zap.Logger) *Provider {
 	syms := make([]string, 0, len(cfg.Symbols))
 
@@ -60,6 +64,7 @@ type tradeEvent struct {
 	Exchange string  `json:"x,omitempty"` // optional
 }
 
+// Start begins streaming market data from Finnhub WebSocket API.
 func (p *Provider) Start(ctx context.Context) (<-chan model.Tick, <-chan error) {
 	ticks := make(chan model.Tick, 1024)
 	errs := make(chan error, 16)

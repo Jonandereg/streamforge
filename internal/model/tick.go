@@ -17,12 +17,14 @@ type Tick struct {
 }
 
 var (
+	// ErrEmptySymbol is returned when a tick has an empty symbol.
 	ErrEmptySymbol = errors.New("Tick: empty symbol")
 	ErrBadTS       = errors.New("tick: zero timestamp")
 	ErrBadPrice    = errors.New("tick: negative price")
 	ErrBadSize     = errors.New("tick: negative size")
 )
 
+// Validate checks if the tick has valid field values.
 func (t Tick) Validate() error {
 	if t.Symbol == "" {
 		return ErrEmptySymbol

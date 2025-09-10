@@ -1,3 +1,4 @@
+// Package metrics defines Prometheus metrics for the StreamForge ingestor service.
 package metrics
 
 import (
@@ -6,6 +7,7 @@ import (
 )
 
 var (
+	// IngestorFetchTotal counts the total number of fetch attempts by the provider client.
 	IngestorFetchTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "ingestor_fetch_total",
@@ -20,7 +22,7 @@ var (
 		[]string{"reason"},
 	)
 
-	// Total successful publishes to the broker
+	// IngestorPublishTotal counts the total successful publishes to the broker.
 	IngestorPublishTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "ingestor_publish_total",
@@ -28,7 +30,7 @@ var (
 		},
 	)
 
-	// Publish errors partitioned by reason (e.g., retriable, non_retriable, timeout)
+	// IngestorPublishErrorsTotal counts publish errors partitioned by reason (e.g., retriable, non_retriable, timeout).
 	IngestorPublishErrorsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ingestor_publish_errors_total",
@@ -37,7 +39,7 @@ var (
 		[]string{"reason"},
 	)
 
-	// Latency around the publish call
+	// IngestorPublishLatencySeconds measures latency around the publish call.
 	IngestorPublishLatencySeconds = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Name: "ingestor_publish_latency_seconds",
@@ -46,7 +48,7 @@ var (
 			Buckets: prometheus.DefBuckets,
 		},
 	)
-	// Provider state / reconnects
+	// IngestorProviderConnectTotal tracks provider connect attempts by status.
 	IngestorProviderConnectTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ingestor_provider_connect_total",
@@ -61,7 +63,7 @@ var (
 		},
 	)
 
-	// Backpressure (enqueue contention)
+	// IngestorBackpressureTotal counts times the publisher queue was full and we had to block or drop.
 	IngestorBackpressureTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "ingestor_backpressure_total",
@@ -70,6 +72,7 @@ var (
 	)
 )
 
+// Register registers all ingestor metrics with the provided Prometheus registry.
 func Register(reg *prometheus.Registry) {
 
 	obs.MustRegister(reg,
@@ -84,6 +87,7 @@ func Register(reg *prometheus.Registry) {
 	)
 }
 
+// Prime initializes all metric label combinations to ensure they appear in /metrics output.
 func Prime() {
 	for _, reason := range []string{"validation", "rate_limit", "http", "parse", "ws"} {
 		IngestorFetchErrorsTotal.WithLabelValues(reason).Add(0)
