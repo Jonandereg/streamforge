@@ -46,6 +46,28 @@ var (
 			Buckets: prometheus.DefBuckets,
 		},
 	)
+	// Provider state / reconnects
+	IngestorProviderConnectTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "ingestor_provider_connect_total",
+			Help: "Provider connect attempts by status.",
+		},
+		[]string{"status"},
+	)
+	IngestorProviderReconnectTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "ingestor_provider_reconnect_total",
+			Help: "Number of provider reconnects.",
+		},
+	)
+
+	// Backpressure (enqueue contention)
+	IngestorBackpressureTotal = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "ingestor_backpressure_total",
+			Help: "Times the publisher queue was full and we had to block or drop.",
+		},
+	)
 )
 
 func Register(reg *prometheus.Registry) {
@@ -56,5 +78,20 @@ func Register(reg *prometheus.Registry) {
 		IngestorPublishTotal,
 		IngestorPublishErrorsTotal,
 		IngestorPublishLatencySeconds,
+		IngestorProviderConnectTotal,
+		IngestorProviderReconnectTotal,
+		IngestorBackpressureTotal,
 	)
+}
+
+func Prime() {
+	for _, reason := range []string{"validation", "rate_limit", "http", "parse", "ws"} {
+		IngestorFetchErrorsTotal.WithLabelValues(reason).Add(0)
+	}
+	for _, reason := range []string{"retriable", "non_retriable", "timeout", "marshal", "error"} {
+		IngestorPublishErrorsTotal.WithLabelValues(reason).Add(0)
+	}
+	IngestorProviderConnectTotal.WithLabelValues("success").Add(0)
+	IngestorProviderConnectTotal.WithLabelValues("failure").Add(0)
+
 }

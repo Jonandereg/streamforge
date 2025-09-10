@@ -48,6 +48,7 @@ func main() {
 	defer shutdown(context.Background())
 
 	sfmetrics.Register(o.PromRegistry)
+	sfmetrics.Prime()
 	obs.MustRegister(o.PromRegistry, broker.BrokerConnectTotal, broker.BrokerCloseTotal)
 
 	mux := http.NewServeMux()

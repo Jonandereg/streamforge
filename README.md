@@ -1,38 +1,94 @@
-# StreamForge  
+# StreamForge
 
-StreamForge is a Go-based project that simulates a production-grade **real-time market data pipeline**. It ingests tick-level events through **Kafka**, processes and stores them in **TimescaleDB** for time-series queries, and uses **Redis** for caching and fast lookups.  
+StreamForge is a Go-based project that simulates a production-grade **real-time market data pipeline**.
+It ingests tick-level events through **Kafka**, processes and stores them in **TimescaleDB** for time-series queries, and uses **Redis** for caching and fast lookups.
 
-To make it closer to real-world systems, the stack includes a full observability layer with **Prometheus**, **Grafana**, and **OpenTelemetry**, plus tracing through **Jaeger**.  
+To make it closer to real-world systems, the stack includes a full observability layer with **Prometheus**, **Grafana**, and **OpenTelemetry**, plus tracing through **Jaeger**.
 
-This project is designed as a **learning environment** to practice building scalable, event-driven backends with modern tools, while keeping the structure, tooling, and CI/CD setup aligned with professional engineering practices.  
-
----
-
-## Features  
-
-- **Go backend** with clean project structure, CI/CD, and linting.  
-- **Real-time ingestion** via **Apache Kafka**, simulating market tick streams.  
-- **Time-series storage** using **TimescaleDB** for efficient queries.  
-- **In-memory caching** layer with **Redis** for low-latency lookups.  
-- **Observability stack**: Prometheus, Grafana, OpenTelemetry, and Jaeger for metrics, dashboards, and tracing.  
-- **Local dev environment** via Docker Compose with reproducible setup.  
-- **Production-style practices**: Makefile tasks, pinned tool versions, GitHub Actions CI.  
+This project is designed as a **learning environment** to practice building scalable, event-driven backends with modern tools, while keeping the structure, tooling, and CI/CD setup aligned with professional engineering practices.
 
 ---
 
-## Getting Started  
+## Quick Demo: Ingestor
 
-### Prerequisites  
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/)  
-- [Go 1.24+](https://go.dev/dl/)  
+The ingestor service streams real-time ticks from [Finnhub](https://finnhub.io/) into Kafka.
 
-### Clone and setup  
+### 1. Set environment
+```bash
+cp .env.example .env
+# edit .env with your FINNHUB_TOKEN
+```
+
+### 2. Start infra (Kafka, Timescale, Redis, Prometheus, Grafana, Jaeger)
+```bash
+make up
+```
+
+### 3. Run the ingestor
+```bash
+go run ./cmd/ingestor
+```
+
+### 4. Verify ticks are flowing
+Consume from Kafka:
+```bash
+docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-console-consumer.sh   --bootstrap-server localhost:29092   --topic ticks   --from-beginning   --property print.headers=true
+```
+
+Check metrics:
+```bash
+curl -s localhost:2112/metrics | grep ingestor_
+```
+
+You should see `ingestor_fetch_total` and `ingestor_publish_total` increasing.
+
+---
+
+## Architecture
+
+```text
+[Finnhub WS] ---> [Ingestor (Go)] ---> [Kafka: ticks topic] ---> [Consumers / TimescaleDB]
+                       |
+                       +--> [/metrics] Prometheus --> Grafana
+                       +--> Jaeger traces
+```
+
+---
+
+## Features
+
+- **Go backend** with clean project structure, CI/CD, and linting.
+- **Real-time ingestion** via **Apache Kafka**, streaming normalized tick events.
+- **Time-series storage** using **TimescaleDB** for efficient queries.
+- **In-memory caching** layer with **Redis** for low-latency lookups.
+- **Observability stack**: Prometheus, Grafana, OpenTelemetry, and Jaeger for metrics, dashboards, and tracing.
+- **Local dev environment** via Docker Compose with reproducible setup.
+- **Production-style practices**: Makefile tasks, pinned tool versions, GitHub Actions CI.
+
+---
+
+## Getting Started
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/)
+- [Go 1.24+](https://go.dev/dl/)
+
+### Clone and setup
 ```bash
 git clone https://github.com/jonandereg/streamforge.git
 cd streamforge
 make tools      # install linters
 make deps       # tidy dependencies
 ```
+
+### Environment
+Copy defaults and adjust as needed:
+```bash
+cp .env.example .env
+```
+
+---
+
 ## Observability
 
 StreamForge includes a production-grade observability baseline out of the box:
@@ -51,7 +107,9 @@ A lightweight demo app in [`cmd/obsdemo`](./cmd/obsdemo) exercises the observabi
 - Sends traces through the OTel Collector into Jaeger.
 - Prometheus scrapes metrics, visualized in Grafana.
 
-👉 See [`cmd/obsdemo/README.md`](./cmd/obsdemo/README.md) for instructions on running the demo locally with Docker Compose.
+See [`cmd/obsdemo/README.md`](./cmd/obsdemo/README.md) for instructions on running the demo locally with Docker Compose.
+
+---
 
 ## Local Stack (Docker Compose, KRaft Kafka)
 
@@ -62,38 +120,37 @@ This repo ships a local infra stack for development:
 - Kafka **in KRaft mode** (no ZooKeeper) via Bitnami image
 - Prometheus (metrics), Grafana (dashboards)
 - OpenTelemetry Collector (OTLP → Jaeger), Jaeger (traces)
-- DATABASE_URL is used by the migration tool; it will be generated from the Timescale env vars in local/dev.
+- `DATABASE_URL` is used by the migration tool; it is generated from the Timescale env vars in local/dev.
 
 ### Database & Migrations
 
-- I use **TimescaleDB**; `ticks` is a hypertable on `ts`.
+- **TimescaleDB** with `ticks` hypertable on `ts`.
 - Dev retention: **30 days**; compression on chunks older than **7 days**.
-- Migrations are managed with **golang-migrate** (via Docker).
+- Managed with **golang-migrate** (via Docker).
 
-**Run migrations**
-
+Run migrations:
 ```bash
-make migrate-up # apply all up migrations
-make migrate-version # show current migration version
-make migrate-down # roll back one migration (careful)
+make migrate-up        # apply all up migrations
+make migrate-version   # show current migration version
+make migrate-down      # roll back one migration
 ```
 
-### Normalized `Tick` Model
+---
 
-All market data providers are normalized into a common `Tick` struct before being persisted in TimescaleDB.  
-This ensures the ingestion pipeline stays provider-agnostic.
+## Normalized `Tick` Model
 
-| Field      | Type        | Source (Finnhub) | Notes                                  |
-|------------|-------------|------------------|----------------------------------------|
-| `symbol`   | string      | `s`              | e.g. `"AAPL"`, `"EURUSD"`.             |
-| `ts`       | `time.Time` | `t` (epoch ms)   | Converted to UTC.                       |
-| `price`    | float64     | `p`              | Last trade/quote price.                 |
-| `size`     | float64     | `v`              | Trade size/volume (0 if unknown).       |
-| `exchange` | string      | `x` (optional)   | Empty string if not provided.           |
-| `src_id`   | string      | constant         | `"finnhub"` (identifies the provider). |
+All providers are normalized into a common `Tick` struct before persistence, making the pipeline provider-agnostic.
 
-**Example normalized tick (JSON):**
+| Field      | Type        | Source (Finnhub) | Notes                                |
+|------------|-------------|------------------|--------------------------------------|
+| `symbol`   | string      | `s`              | e.g. "AAPL", "EURUSD".               |
+| `ts`       | `time.Time` | `t` (epoch ms)   | Converted to UTC.                    |
+| `price`    | float64     | `p`              | Last trade/quote price.              |
+| `size`     | float64     | `v`              | Trade size/volume (0 if unknown).    |
+| `exchange` | string      | `x` (optional)   | Empty string if not provided.        |
+| `src_id`   | string      | constant         | "finnhub" (provider ID).             |
 
+Example normalized tick:
 ```json
 {
   "symbol": "AAPL",
@@ -102,72 +159,47 @@ This ensures the ingestion pipeline stays provider-agnostic.
   "size": 100,
   "exchange": "",
   "src_id": "finnhub"
-  }
-  ```
-
-### Environment
-Copy defaults and adjust as needed:
-
-```bash
-cp .env.example .env
+}
 ```
 
-### Run the stack
-```bash
-make up      # start stack
-make ps      # show container status
-make logs    # tail all container logs
-make down    # stop & remove containers/volumes
-```
+---
 
-### Access services
-- TimescaleDB → localhost:5432 (user: postgres, password: postgres, db: streamforge)
-- Kafka → localhost:29092 (external listener)
-- Redis → localhost:6379
+## Accessing Services
+
+- TimescaleDB → `localhost:5432` (user: postgres, password: postgres, db: streamforge)
+- Kafka → `localhost:29092` (external listener)
+- Redis → `localhost:6379`
 - Prometheus → http://localhost:9090
 - Grafana → http://localhost:3000 (user: admin, password: admin)
 - Jaeger UI → http://localhost:16686
 
-### Kafka Quickstart
+---
 
-You can try Kafka right away with a test topic:
+## Kafka Quickstart
 
-**Create a topic**
+Create a test topic:
 ```bash
-docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:9092 \
-  --create --topic test-topic --partitions 3 --replication-factor 1
-  ```
-
-**List topics**
-
-```bash
-docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:9092 --list
-  ```
-
-**Produce messages**
-```bash
-docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-console-producer.sh \
-  --bootstrap-server kafka:9092 --topic test-topic
-  ```
-Type some messages and press Enter to send.
-
-**Consume messages**
-```bash
-docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-console-consumer.sh \
-  --bootstrap-server kafka:9092 --topic test-topic \
-  --group sf-demo-$(date +%s) --from-beginning --timeout-ms 10000
-  ```
-
-### Tear down
-```bash
-make down
+docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-topics.sh   --bootstrap-server kafka:9092   --create --topic test-topic --partitions 3 --replication-factor 1
 ```
 
-### Status
-Status
+List topics:
+```bash
+docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-topics.sh   --bootstrap-server kafka:9092 --list
+```
 
-✅ Repository initialized, CI/CD pipeline green.
+Produce messages:
+```bash
+docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-console-producer.sh   --bootstrap-server kafka:9092 --topic test-topic
+```
 
-🚧 Currently implementing core ingestion pipeline.
+Consume messages:
+```bash
+docker exec -it sf-kafka /opt/bitnami/kafka/bin/kafka-console-consumer.sh   --bootstrap-server kafka:9092 --topic test-topic   --group sf-demo-$(date +%s) --from-beginning --timeout-ms 10000
+```
+
+---
+
+## Project Status
+
+✅ Ingestor service runs, publishes ticks into Kafka, exposes Prometheus metrics.  
+🚧 Next: consumers & TimescaleDB persistence.
