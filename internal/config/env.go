@@ -13,6 +13,12 @@ import (
 type AppConfig struct {
 	DataProvider DataProvider
 	Kafka        Kafka
+	Processor    Processor
+}
+
+type Processor struct {
+	NumWorkers    int
+	QueueCapacity int
 }
 
 // DataProvider holds configuration values loaded from environment variables.
@@ -52,9 +58,15 @@ func LoadConfig() (AppConfig, error) {
 		MaxWait:    time.Duration(mustEnvInt("KAFKA_MAX_WAIT_MS")) * time.Millisecond,
 	}
 
+	p := Processor{
+		NumWorkers:    mustEnvInt("TICKS_NUM_WORKERS"),
+		QueueCapacity: mustEnvInt("TICKS_QUEUE_CAPACITY"),
+	}
+
 	return AppConfig{
 		DataProvider: dp,
 		Kafka:        k,
+		Processor:    p,
 	}, nil
 
 }

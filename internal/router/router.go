@@ -10,7 +10,7 @@ import (
 // StartRouter creates numWorkers output channels and starts a goroutine that
 // routes each TickMsg to a deterministic worker index based on Tick.Symbol.
 
-func StartRouter(ctx context.Context, in <-chan events.TickMsg, numWorkers, queueCap int) []chan events.TickMsg {
+func StartRouter(ctx context.Context, in <-chan events.TickMsg, numWorkers, queueCap int, onDrop func(events.TickMsg)) []chan events.TickMsg {
 	if numWorkers <= 0 {
 		numWorkers = 1
 	}
@@ -40,8 +40,10 @@ func StartRouter(ctx context.Context, in <-chan events.TickMsg, numWorkers, queu
 				idx := workerIndex(msg.Tick.Symbol, numWorkers)
 				select {
 				case outs[idx] <- msg:
-				case <-ctx.Done():
-					return
+				default:
+					if onDrop != nil {
+						onDrop(msg)
+					}
 				}
 
 			}
