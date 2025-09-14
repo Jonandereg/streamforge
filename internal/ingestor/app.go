@@ -50,8 +50,8 @@ func Run(ctx context.Context, o *obs.Obs) error {
 		"BINANCE:BTCUSDT",
 	}
 	provCfg := finnhub.WSConfig{
-		BaseURL:       envConfig.DataProviderWsURL,
-		APIKey:        envConfig.DataProviderToken,
+		BaseURL:       envConfig.DataProvider.WsURL,
+		APIKey:        envConfig.DataProvider.Token,
 		Symbols:       symbols,
 		ReconnectBase: 200 * time.Millisecond,
 		ReconnectMax:  5 * time.Second,

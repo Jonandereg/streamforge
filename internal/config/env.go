@@ -3,41 +3,85 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
-// Config holds configuration values loaded from environment variables.
-type Config struct {
-	DataProviderToken   string
-	DataProviderBaseURL string
-	DataProviderWsURL   string
+type AppConfig struct {
+	DataProvider DataProvider
+	Kafka        Kafka
+}
+
+// DataProvider holds configuration values loaded from environment variables.
+type DataProvider struct {
+	Token   string
+	BaseURL string
+	WsURL   string
+}
+
+type Kafka struct {
+	Brokers    []string
+	GroupID    string
+	TicksTopic string
+
+	MinBytes int
+	MaxBytes int
+	MaxWait  time.Duration
 }
 
 // LoadConfig loads configuration values from environment variables.
-func LoadConfig() (Config, error) {
+func LoadConfig() (AppConfig, error) {
 	if err := godotenv.Load(".env"); err != nil {
 		fmt.Println("warning: no .env file found")
 	}
-	token := os.Getenv("FINNHUB_TOKEN")
-
-	if token == "" {
-		return Config{}, fmt.Errorf(" missing FINNHUB_TOKEN")
-	}
-	baseURL := os.Getenv("FINNHUB_BASE_URL")
-	if baseURL == "" {
-		return Config{}, fmt.Errorf("missing FINNHUB_BASE_URL")
-	}
-	wsURL := os.Getenv("FINNHUB_WS_URL")
-
-	if wsURL == "" {
-		return Config{}, fmt.Errorf("missing FINNHUB_WS_URL")
+	dp := DataProvider{
+		Token:   mustEnv("FINNHUB_TOKEN"),
+		BaseURL: mustEnv("FINNHUB_BASE_URL"),
+		WsURL:   mustEnv("FINNHUB_WS_URL"),
 	}
 
-	return Config{
-		DataProviderToken:   token,
-		DataProviderBaseURL: baseURL,
-		DataProviderWsURL:   wsURL,
+	k := Kafka{
+		Brokers:    splitAndTrim(mustEnv("KAFKA_BROKERS")),
+		GroupID:    mustEnv("KAFKA_GROUP_ID"),
+		TicksTopic: mustEnv("KAFKA_TICKS_TOPIC"),
+		MinBytes:   mustEnvInt("KAFKA_MIN_BYTES"),
+		MaxBytes:   mustEnvInt("KAFKA_MAX_BYTES"),
+		MaxWait:    time.Duration(mustEnvInt("KAFKA_MAX_WAIT_MS")) * time.Millisecond,
+	}
+
+	return AppConfig{
+		DataProvider: dp,
+		Kafka:        k,
 	}, nil
 
+}
+
+func mustEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		panic(fmt.Errorf("missing %s", key))
+	}
+	return v
+}
+
+func mustEnvInt(key string) int {
+	v := os.Getenv(key)
+	if v == "" {
+		panic(fmt.Errorf("missing %s", key))
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		panic(fmt.Errorf("invalid int for %s: %v", key, err))
+	}
+	return n
+}
+func splitAndTrim(s string) []string {
+	parts := strings.Split(s, ",")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+	return parts
 }
